@@ -1,0 +1,25 @@
+source 'https://rubygems.org'
+git_source(:github) { |repo| "https://github.com/#{repo}.git" }
+
+ruby '2.7.2'
+
+gem 'bootsnap'
+gem 'bootstrap-sass'
+gem 'dotenv-rails'
+gem 'dragonfly', '~> 1.3.0', git: 'https://github.com/markevans/dragonfly.git'
+gem 'draper'
+gem 'execjs'
+gem 'listen'
+gem 'paper_trail'
+gem 'paranoia'
+gem 'pg'
+gem 'puma'
+gem 'rack-cors', require: 'rack/cors'
+gem 'rails'
+gem 'redis'
+gem 'redis-rails'
+gem 'redis-rack-cache'
+gem 'sidekiq'
+gem 'sinatra', require: nil
+gem 'taglib-ruby'
+gem 'uuid'
