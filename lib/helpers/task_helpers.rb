@@ -31,8 +31,14 @@ module TaskHelpers
       ALLOWED_SOURCES.each do |source|
         Dir["#{BACKUP_SERVER_PATH}/#{folder}/#{source}/**"].each do |path|
           name = path.split("/").last
-          ImportWorker.new(path: path, name: name,
-            folder: folder, source: source).perform
+          begin
+            ImportWorker.new(path: path, name: name,
+              folder: folder, source: source).perform
+          rescue => exception
+            Rails.logger.info "Failed to import %s" % name
+            # Rails.logger.error exception
+            next
+          end
         end
       end
     end
@@ -46,8 +52,14 @@ module TaskHelpers
             name = path.split("/").last
             subfolder = subfolder_path.split("/").last
             folder = subfolder_path.gsub("#{APP_SERVER_PATH}/", "").gsub("/#{subfolder}", "")
-            ImportWorker.new(path: path, name: name,
-              folder: folder, source: source, subfolder: subfolder).perform
+            begin
+              ImportWorker.new(path: path, name: name,
+                folder: folder, source: source, subfolder: subfolder).perform
+            rescue => exception
+              Rails.logger.info "Failed to import %s" % name
+              # Rails.logger.error exception
+              next
+            end
           end
         end
       end
