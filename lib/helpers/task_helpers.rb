@@ -3,6 +3,7 @@ module TaskHelpers
   def update_database
     clear_deleted_folders
     MusicFolder.find_each do |music_folder|
+      clear_folder music_folder
       update_folder_path music_folder
       update_folder_dates music_folder
     end
@@ -34,9 +35,8 @@ module TaskHelpers
           begin
             ImportWorker.new(path: path, name: name,
               folder: folder, source: source).perform
-          rescue => exception
+          rescue => _exception
             Rails.logger.info "Failed to import %s" % name
-            # Rails.logger.error exception
             next
           end
         end
@@ -45,25 +45,27 @@ module TaskHelpers
   end
 
   def import_subfolders
-    FOLDERS_WITH_SUBFOLDERS.each do |folder_path|
-      Dir["#{BACKUP_SERVER_PATH}/#{folder_path}/**"].each do |subfolder_path|
+    FOLDERS_WITH_SUBFOLDERS.each do |folder|
+      Dir["#{BACKUP_SERVER_PATH}/#{folder}/**"].each do |subfolder_path|
         ALLOWED_SOURCES.each do |source|
           Dir["#{subfolder_path}/#{source}/**"].each do |path|
             name = path.split("/").last
             subfolder = subfolder_path.split("/").last
-            folder = subfolder_path.gsub("#{APP_SERVER_PATH}/", "").gsub("/#{subfolder}", "")
             begin
               ImportWorker.new(path: path, name: name,
                 folder: folder, source: source, subfolder: subfolder).perform
-            rescue => exception
+            rescue => _exception
               Rails.logger.info "Failed to import %s" % name
-              # Rails.logger.error exception
               next
             end
           end
         end
       end
     end
+  end
+  
+  def clear_folder music_folder
+    music_folder.destroy if !File.directory? music_folder.decorate.public_path
   end
 
   def update_folder_path music_folder
@@ -80,7 +82,14 @@ module TaskHelpers
           end
         end
       end
-      music_folder.destroy if !File.directory? music_folder.decorate.public_path
+    end
+  end
+
+  def set_changes music_folder, folder, source, subfolder=nil
+    if File.directory? [BACKUP_SERVER_PATH, folder, subfolder, source, music_folder.name].reject(&:blank?).join('/')
+      music_folder.update!(source: source) if music_folder.read_attribute(:source) != source
+      music_folder.update!(folder: folder) if music_folder.folder != folder
+      music_folder.update!(subfolder: subfolder) if music_folder.subfolder != subfolder
     end
   end
 
@@ -89,14 +98,6 @@ module TaskHelpers
     f = File::Stat.new music_folder.decorate.public_path
     if f.birthtime != music_folder.folder_created_at || f.mtime != music_folder.folder_updated_at
       music_folder.update! folder_created_at: f.birthtime, folder_updated_at: f.mtime
-    end
-  end
-
-  def set_changes music_folder, folder, source, subfolder=nil
-    if File.directory? [APP_SERVER_PATH, folder, subfolder, source, folder.name].reject(&:blank?).join('/')
-      music_folder.update!(source: source) if music_folder.read_attribute(:source) != source
-      music_folder.update!(folder: folder) if music_folder.folder != folder
-      music_folder.update!(subfolder: subfolder) if music_folder.subfolder != subfolder
     end
   end
 
