@@ -131,7 +131,7 @@ module TaskHelpers
   end
 
   def update_music_folders_year
-    MusicFolder.where(year: nil).each do |music_folder|
+    MusicFolder.where('year::numeric IS NULL or year::numeric = 0').each do |music_folder|
       next unless music_folder.audio_files.any?
       year = music_folder.audio_files[0].year.to_i
       music_folder.update! year: year
